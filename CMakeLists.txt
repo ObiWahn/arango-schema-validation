@@ -4,7 +4,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ## OPTIONS
-option(ARANGO_VALIDATION_TESTS "build tests" OFF)
+option(ARANGO_VALIDATION_TESTS "build tests" ON)
 
 ## general setup and includes
 set(CMAKE_CXX_STANDARD 17)
@@ -14,6 +14,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON) # XCode / VS folders
 set(ARANGO_VALIDATION_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 include(ext_cmake_setup)
 include(ext_cmake_install)
+
+add_subdirectory(external_libs/velocypack EXCLUDE_FROM_ALL)
+add_subdirectory(external_libs/googletest EXCLUDE_FROM_ALL)
 
 set(FORCE_COLORED_OUTPUT ON)
 ext_colored_compiler_ouput()
@@ -35,6 +38,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 ### define header only lib
 add_library(arango-validation STATIC
     src/validation.cpp
+)
+
+target_link_libraries(arango-validation PUBLIC
+   velocypack 
 )
 
 target_include_directories(arango-validation PUBLIC
@@ -59,25 +66,26 @@ if(ARANGO_VALIDATION_TESTS)
     ext_log("arango-validation tests enabled")
     include(CTest)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    #ext_add_test_subdirectory("google" tests)
+    ext_add_test_subdirectory("google" tests)
 else()
     ext_log("arango-validation tests disabled")
 endif()
 
-## installation
-if(COMMAND ext_install)
-    set_target_properties(arango-validation PROPERTIES EXPORT_NAME validation)
-
-    ext_install(arango-validation include/validation)
-
-    install(TARGETS arango-validation
-        EXPORT arango-validation-targets
-        DESTINATION ${CMAKE_INSTALL_PREFIX}
-    )
-	install(
-        EXPORT arango-validation-targets
-		FILE arango-validation-config.cmake
-        NAMESPACE arango::
-        DESTINATION ${CMAKE_INSTALL_PREFIX}
-    )
-endif()
+## velocypack requires install routine to make this work
+# ## installation
+# if(COMMAND ext_install)
+#     set_target_properties(arango-validation PROPERTIES EXPORT_NAME validation)
+# 
+#     ext_install(arango-validation include/validation)
+# 
+#     install(TARGETS arango-validation
+#         EXPORT arango-validation-targets
+#         DESTINATION ${CMAKE_INSTALL_PREFIX}
+#     )
+# 	install(
+#         EXPORT arango-validation-targets
+# 		FILE arango-validation-config.cmake
+#         NAMESPACE arango::
+#         DESTINATION ${CMAKE_INSTALL_PREFIX}
+#     )
+# endif()
