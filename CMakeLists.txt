@@ -16,6 +16,8 @@ include(ext_cmake_setup)
 include(ext_cmake_install)
 
 #find_package(Filesystem REQUIRED Final)
+set(TAOCPP_JSON_BUILD_TESTS OFF CACHE BOOL "Build test programs" FORCE)
+set(TAOCPP_JSON_BUILD_EXAMPLES OFF CACHE BOOL "Build example programs" FORCE)
 add_subdirectory(external_libs/json EXCLUDE_FROM_ALL)
 add_subdirectory(external_libs/velocypack EXCLUDE_FROM_ALL)
 add_subdirectory(external_libs/googletest EXCLUDE_FROM_ALL)
@@ -44,7 +46,7 @@ add_library(arango-validation STATIC
 
 target_link_libraries(arango-validation PUBLIC
    taocpp::json
-   velocypack 
+   velocypack
 )
 
 target_include_directories(arango-validation PUBLIC
