@@ -74,6 +74,7 @@ before_install:
 
 install:
   - echo $project_root
+  - git submodule update --init --recursive
   - git clone https://github.com/extcpp/build-support --recurse-submodules ../build-support
   - ../build-support/setup-support . ../build-support
   # system info

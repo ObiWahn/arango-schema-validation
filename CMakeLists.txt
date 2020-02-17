@@ -16,6 +16,7 @@ include(ext_cmake_setup)
 include(ext_cmake_install)
 
 #find_package(Filesystem REQUIRED Final)
+add_subdirectory(external_libs/json EXCLUDE_FROM_ALL)
 add_subdirectory(external_libs/velocypack EXCLUDE_FROM_ALL)
 add_subdirectory(external_libs/googletest EXCLUDE_FROM_ALL)
 
@@ -42,6 +43,7 @@ add_library(arango-validation STATIC
 )
 
 target_link_libraries(arango-validation PUBLIC
+   taocpp::json
    velocypack 
 )
 
