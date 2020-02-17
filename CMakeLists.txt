@@ -15,6 +15,7 @@ set(ARANGO_VALIDATION_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 include(ext_cmake_setup)
 include(ext_cmake_install)
 
+#find_package(Filesystem REQUIRED Final)
 add_subdirectory(external_libs/velocypack EXCLUDE_FROM_ALL)
 add_subdirectory(external_libs/googletest EXCLUDE_FROM_ALL)
 

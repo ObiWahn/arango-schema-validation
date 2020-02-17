@@ -1,0 +1,9 @@
+{
+    "schema" : {
+        "type" : "array",
+        "items": { "type": "number",
+                   "maximum"  : 6
+                 }
+    },
+    "doc":  [ 1, 2, 3, 4, 5 ]
+}

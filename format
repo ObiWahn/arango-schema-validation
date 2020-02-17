@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+clang-format-9 -i src/* include/validation/* tests/*cpp
