@@ -1,12 +1,10 @@
 #include <gtest/gtest.h>
 
-#include <filesystem>
-
 #include "helper.hpp"
 #include <validation/validation.hpp>
 
 namespace {
-std::filesystem::path const test_dir = std::filesystem::path{ARANGO_VALIDATION_TEST_DIR} / "test_data";
+fs::path const test_dir = fs::path{ARANGO_VALIDATION_TEST_DIR} / "test_data";
 }
 
 TEST(small_sample, schema_1) {

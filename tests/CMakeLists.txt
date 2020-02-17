@@ -18,10 +18,15 @@ target_include_directories("${test_target}" SYSTEM PRIVATE ${gtest_SOURCE_DIR}/i
 target_compile_definitions("${test_target}" PRIVATE
     "ARANGO_VALIDATION_TEST_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\""
 )
-target_link_libraries("${test_target}"
+target_link_libraries("${test_target}" PRIVATE
     gtest_main gtest
     std::filesystem
     arango::validation
 )
+target_compile_definitions("${test_target}" PRIVATE
+    FS_HEADER=<${CXX_FILESYSTEM_HEADER}>
+    FS_NAMESPACE=${CXX_FILESYSTEM_NAMESPACE}
+)
+
 add_test(NAME "${test_target}_run" COMMAND $<TARGET_FILE:${test_target}>)
 set_target_properties (${test_target} PROPERTIES FOLDER tests/${test_target})
