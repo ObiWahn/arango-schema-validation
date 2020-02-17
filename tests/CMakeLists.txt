@@ -10,7 +10,7 @@ foreach(test_name IN LISTS test-files) # <- DO NOT EXPAND LIST
     list(APPEND test_sources "${test_name}.cpp")
 endforeach()
 
-find_package(Filesystem REQUIRED Final)
+find_package(Filesystem REQUIRED Final Experimental)
 
 set(test_target "test-arango-validation")
 add_executable("${test_target}" gtest.cpp ${test_sources})
