@@ -122,33 +122,43 @@ tao::json::value SliceToValue(VPackSlice slice, VPackOptions const* options, VPa
     switch (slice.type()) {
         case VPackValueType::Null: {
             rv.set_null();
+            return rv;
         }
         case VPackValueType::Bool: {
             rv.set_boolean(slice.getBool());
+            return rv;
         }
         case VPackValueType::Double: {
             rv.set_double(slice.getDouble());
+            return rv;
         }
         case VPackValueType::Int: {
             rv.set_signed(slice.getInt());
+            return rv;
         }
         case VPackValueType::UInt: {
             rv.set_unsigned(slice.getUInt());
+            return rv;
         }
         case VPackValueType::SmallInt: {
             rv.set_signed(slice.getNumericValue<int32_t>());
+            return rv;
         }
         case VPackValueType::String: {
             rv.set_string(slice.copyString());
+            return rv;
         }
         case VPackValueType::Array: {
             return VPackArrayToValue(slice, options, base);
+            return rv;
         }
         case VPackValueType::Object: {
             return VPackObjectToValue(slice, options, base);
+            return rv;
         }
         case VPackValueType::External: {
             return SliceToValue(VPackSlice(reinterpret_cast<uint8_t const*>(slice.getExternal())), options, base);
+            return rv;
         }
         case VPackValueType::Custom: {
             if (options == nullptr || options->customTypeHandler == nullptr || base == nullptr) {
@@ -157,13 +167,15 @@ tao::json::value SliceToValue(VPackSlice slice, VPackOptions const* options, VPa
             }
             std::string id = options->customTypeHandler->toString(slice, options, *base);
             rv.set_string(std::move(id));
+            return rv;
         }
         case VPackValueType::None:
         default:
+            break;
             return rv;
     }
+    return rv;
 }
-
 
 std::unique_ptr<VPackBuilder> ValueToSlice(tao::json::value doc) {
     throw std::runtime_error("not implemented");

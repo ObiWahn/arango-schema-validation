@@ -13,5 +13,71 @@ TEST(small_sample, schema_1) {
     tao::json::schema schema(tao_value.at("schema"));
     auto doc = tao_value.at("doc");
     bool result = arangodb::validation::validate(doc, schema);
-    std::cout << "\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n" << std::boolalpha << result << "\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+}
+
+TEST(small_sample, with_slices_true) {
+    VPackBuilder builder;
+    {
+        VPackObjectBuilder o(&builder);
+        builder.add(VPackValue("schema"));
+        {
+            VPackObjectBuilder sub(&builder);
+            builder.add("type", VPackValue("array"));
+            builder.add(VPackValue("items"));
+            {
+                VPackObjectBuilder subsub(&builder);
+                builder.add("type", VPackValue("number"));
+                builder.add("maximum", VPackValue(6));
+            }
+
+        }
+        builder.add(VPackValue("doc"));
+        {
+            VPackArrayBuilder sub(&builder);
+            builder.add(VPackValue(1));
+            builder.add(VPackValue(2));
+            builder.add(VPackValue(3));
+            builder.add(VPackValue(4));
+        };
+    }
+
+    auto tao_value = arangodb::validation::SliceToValue(builder.slice());
+    tao::json::schema schema(tao_value.at("schema"));
+    auto doc = tao_value.at("doc");
+    bool result = arangodb::validation::validate(doc, schema);
+    ASSERT_TRUE(result);
+}
+
+TEST(small_sample, with_slices_false) {
+    VPackBuilder builder;
+    {
+        VPackObjectBuilder o(&builder);
+        builder.add(VPackValue("schema"));
+        {
+            VPackObjectBuilder sub(&builder);
+            builder.add("type", VPackValue("array"));
+            builder.add(VPackValue("items"));
+            {
+                VPackObjectBuilder subsub(&builder);
+                builder.add("type", VPackValue("number"));
+                builder.add("maximum", VPackValue(6));
+            }
+
+        }
+        builder.add(VPackValue("doc"));
+        {
+            VPackArrayBuilder sub(&builder);
+            builder.add(VPackValue(1));
+            builder.add(VPackValue(2));
+            builder.add(VPackValue(3));
+            builder.add(VPackValue(4));
+            builder.add(VPackValue(8));
+        };
+    }
+
+    auto tao_value = arangodb::validation::SliceToValue(builder.slice());
+    tao::json::schema schema(tao_value.at("schema"));
+    auto doc = tao_value.at("doc");
+    bool result = arangodb::validation::validate(doc, schema);
+    ASSERT_FALSE(result);
 }
