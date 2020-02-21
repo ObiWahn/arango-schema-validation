@@ -5,9 +5,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ## OPTIONS
 option(ARANGO_VALIDATION_TESTS "build tests" ON)
+option(ARANGO_VALIDATION_BUILD_SHARED "build shared lib" OFF)
 
 ## general setup and includes
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "Required C++ standard")
+if(CMAKE_CXX_STANDARD LESS 17)
+    message(FATAL_ERROR "Incorrect C++ standard was set. 'arangodb-validation' requires C++17 minimum")
+endif()
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON) # XCode / VS folders
 
@@ -39,26 +44,37 @@ endif()
 # include build dir to find version.hpp
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-### define header only lib
+### define static lib
 add_library(arango-validation STATIC
     src/validation.cpp
 )
-
 target_link_libraries(arango-validation PUBLIC
    taocpp::json
    velocypack
 )
-
 target_include_directories(arango-validation PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
 )
 target_compile_features(arango-validation PUBLIC cxx_std_17)
-target_compile_options(arango-validation PRIVATE
-    $<$<AND:$<CONFIG:Debug>,$<BOOL:ARANGO_VALIDATION_WARNINGS>>:${ext_stone-warnings}>
+target_compile_options(arango-validation PRIVATE)
+target_compile_definitions(arango-validation PUBLIC)
+
+### define shared lib
+if(ARANGO_VALIDATION_BUILD_SHARED)
+add_library(arango-validation-shared SHARED
+    src/validation.cpp
 )
-target_compile_definitions(arango-validation PUBLIC
+target_link_libraries(arango-validation-shared PUBLIC
+   taocpp::json
+   velocypack
 )
+target_include_directories(arango-validation-shared PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
+)
+target_compile_features(arango-validation-shared PUBLIC cxx_std_17)
+endif()
 
 # set up folder structure for XCode and VisualStudio
 #set_target_properties (arango-validation PROPERTIES FOLDER libext) #not for interface libraries
