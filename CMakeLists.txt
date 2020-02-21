@@ -4,7 +4,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ## OPTIONS
-option(ARANGO_VALIDATION_TESTS "build tests" ON)
+option(ARANGO_VALIDATION_TESTS "build tests" OFF)
 option(ARANGO_VALIDATION_BUILD_SHARED "build shared lib" OFF)
 
 ## general setup and includes
@@ -19,13 +19,24 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON) # XCode / VS folders
 set(ARANGO_VALIDATION_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 include(ext_cmake_setup)
 include(ext_cmake_install)
+include(ext_cmake_utils)
+include(ext_cmake_compiler_specific)
 
 #find_package(Filesystem REQUIRED Final)
 set(TAOCPP_JSON_BUILD_TESTS OFF CACHE BOOL "Build test programs" FORCE)
 set(TAOCPP_JSON_BUILD_EXAMPLES OFF CACHE BOOL "Build example programs" FORCE)
-add_subdirectory(external_libs/json EXCLUDE_FROM_ALL)
-add_subdirectory(external_libs/velocypack EXCLUDE_FROM_ALL)
-add_subdirectory(external_libs/googletest EXCLUDE_FROM_ALL)
+
+if(NOT TARGET taocpp::json)
+    add_subdirectory(external_libs/json EXCLUDE_FROM_ALL)
+endif()
+
+if(NOT TARGET velocypack)
+    add_subdirectory(external_libs/velocypack EXCLUDE_FROM_ALL)
+endif()
+
+if(ARANGO_VALIDATION_TESTS AND NOT TARGET gtest)
+    add_subdirectory(external_libs/googletest EXCLUDE_FROM_ALL)
+endif()
 
 set(FORCE_COLORED_OUTPUT ON)
 ext_colored_compiler_ouput()

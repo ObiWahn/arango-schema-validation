@@ -29,7 +29,6 @@ TEST(small_sample, with_slices_true) {
                 builder.add("type", VPackValue("number"));
                 builder.add("maximum", VPackValue(6));
             }
-
         }
         builder.add(VPackValue("doc"));
         {
@@ -41,7 +40,7 @@ TEST(small_sample, with_slices_true) {
         };
     }
 
-    auto tao_value = arangodb::validation::SliceToValue(builder.slice());
+    auto tao_value = arangodb::validation::slice_to_value(builder.slice());
     tao::json::schema schema(tao_value.at("schema"));
     auto doc = tao_value.at("doc");
     bool result = arangodb::validation::validate(doc, schema);
@@ -62,7 +61,6 @@ TEST(small_sample, with_slices_false) {
                 builder.add("type", VPackValue("number"));
                 builder.add("maximum", VPackValue(6));
             }
-
         }
         builder.add(VPackValue("doc"));
         {
@@ -75,7 +73,7 @@ TEST(small_sample, with_slices_false) {
         };
     }
 
-    auto tao_value = arangodb::validation::SliceToValue(builder.slice());
+    auto tao_value = arangodb::validation::slice_to_value(builder.slice());
     tao::json::schema schema(tao_value.at("schema"));
     auto doc = tao_value.at("doc");
     bool result = arangodb::validation::validate(doc, schema);

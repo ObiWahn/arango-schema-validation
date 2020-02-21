@@ -5,18 +5,6 @@
 
 #include <validation/validation.hpp>
 
-namespace arangodb::validation {
-bool validate(VPackSlice const, tao::json::schema const&) {
-    // TODO
-    // option1: convert slice ot tao::value (we need this schema creations anyway)
-    // option2: implement validation on slice - more work (only if conversion is too slow)
-    throw std::runtime_error("not implemented");
-}
-
-bool validate(tao::json::value const& doc, tao::json::schema const& schema) {
-    return schema.validate(doc);
-}
-
 #if __has_include("Basics/VelocyPackHelper")
     #include "Basics/VelocyPackHelper.h"
 #else
@@ -34,9 +22,10 @@ class VelocyPackHelper {
 } // namespace arangodb::basics
 #endif
 
-
 namespace {
-tao::json::value VPackObjectToValue(VPackSlice const& slice, VPackOptions const* options, VPackSlice const* base) {
+using namespace arangodb;
+using namespace arangodb::validation;
+tao::json::value slice_object_to_value(VPackSlice const& slice, VPackOptions const* options, VPackSlice const* base) {
     assert(slice.isObject());
     tao::json::value rv;
     rv.prepare_object();
@@ -48,7 +37,7 @@ tao::json::value VPackObjectToValue(VPackSlice const& slice, VPackOptions const*
 
         if (key.isString()) {
             // regular attribute
-            rv.try_emplace(key.copyString(), SliceToValue(it.value(), options, &slice));
+            rv.try_emplace(key.copyString(), slice_to_value(it.value(), options, &slice));
         } else {
             // optimized code path for translated system attributes
             VPackSlice val = VPackSlice(key.begin() + 1);
@@ -57,7 +46,7 @@ tao::json::value VPackObjectToValue(VPackSlice const& slice, VPackOptions const*
                 // value of _key, _id, _from, _to, and _rev is ASCII too
                 sub = std::string(val.getString(length), length);
             } else {
-                sub = SliceToValue(val, options, &slice);
+                sub = slice_to_value(val, options, &slice);
             }
 
 
@@ -93,11 +82,7 @@ tao::json::value VPackObjectToValue(VPackSlice const& slice, VPackOptions const*
     return rv;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-/// @brief converts a VelocyValueType::Array into a V8 object
-////////////////////////////////////////////////////////////////////////////////
-
-tao::json::value VPackArrayToValue(VPackSlice const& slice, VPackOptions const* options, VPackSlice const* base) {
+tao::json::value slice_array_to_value(VPackSlice const& slice, VPackOptions const* options, VPackSlice const* base) {
     assert(slice.isArray());
     VPackArrayIterator it(slice);
     tao::json::value rv;
@@ -105,19 +90,26 @@ tao::json::value VPackArrayToValue(VPackSlice const& slice, VPackOptions const* 
     a.resize(it.size());
 
     while (it.valid()) {
-        tao::json::value val = SliceToValue(it.value(), options, &slice);
+        tao::json::value val = slice_to_value(it.value(), options, &slice);
         rv.push_back(std::move(val));
         it.next();
     }
 
     return rv;
 }
-
-
 } // namespace
 
+namespace arangodb::validation {
+bool validate(VPackSlice const, tao::json::schema const&) {
+    // todo: implement validation on slice (use event interface)
+    throw std::runtime_error("not implemented");
+}
 
-tao::json::value SliceToValue(VPackSlice slice, VPackOptions const* options, VPackSlice const* base) {
+bool validate(tao::json::value const& doc, tao::json::schema const& schema) {
+    return schema.validate(doc);
+}
+
+tao::json::value slice_to_value(VPackSlice const& slice, VPackOptions const* options, VPackSlice const* base) {
     tao::json::value rv;
     switch (slice.type()) {
         case VPackValueType::Null: {
@@ -149,15 +141,15 @@ tao::json::value SliceToValue(VPackSlice slice, VPackOptions const* options, VPa
             return rv;
         }
         case VPackValueType::Array: {
-            return VPackArrayToValue(slice, options, base);
+            return slice_array_to_value(slice, options, base);
             return rv;
         }
         case VPackValueType::Object: {
-            return VPackObjectToValue(slice, options, base);
+            return slice_object_to_value(slice, options, base);
             return rv;
         }
         case VPackValueType::External: {
-            return SliceToValue(VPackSlice(reinterpret_cast<uint8_t const*>(slice.getExternal())), options, base);
+            return slice_to_value(VPackSlice(reinterpret_cast<uint8_t const*>(slice.getExternal())), options, base);
             return rv;
         }
         case VPackValueType::Custom: {

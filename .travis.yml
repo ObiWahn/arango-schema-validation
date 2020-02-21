@@ -96,9 +96,7 @@ script:
   - |
     ../build-support/lib/bash_build_scripts/configure \
       -DCMAKE_BUILD_TYPE="$build_type" \
-      -DLIBEXT_TESTS="$tests" \
-      -DLIBEXT_EXAMPLES="$examples" \
-      -DLIBEXT_TESTS_NO_TIME_CRITICAL=ON \
+      -DARANGO_VALIDATION_TESTS="$tests" \
       $cmake_extra_flags
   - ../build-support/lib/bash_build_scripts/build || exit 1
   - ../build-support/lib/bash_build_scripts/test $tests || exit 1
