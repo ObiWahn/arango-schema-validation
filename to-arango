@@ -1,0 +1,11 @@
+#!/bin/bash
+
+list=(
+  'include/validation/validation.hpp'
+  'src/validation.cpp'
+)
+
+for item in "${list[@]}"; do
+  echo "cp ./$item ../json-schema-validation/$item"
+  cp "./$item" "../json-schema-validation/$item"
+done

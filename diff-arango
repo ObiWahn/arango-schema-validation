@@ -1,0 +1,11 @@
+#!/bin/bash
+
+list=(
+  'include/validation/validation.hpp'
+  'src/validation.cpp'
+)
+
+for item in "${list[@]}"; do
+  echo "diff -u3 ./$item ../json-schema-validation/$item"
+  colordiff -u3 "./$item" "../json-schema-validation/$item"
+done
