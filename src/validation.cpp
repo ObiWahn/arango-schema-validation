@@ -106,9 +106,8 @@ tao::json::value slice_array_to_value(VPackSlice const& slice,
 } // namespace
 
 namespace arangodb::validation {
-bool validate(VPackSlice const, VPackOptions const*, tao::json::schema const&) {
-    // todo: implement validation on slice (use event interface)
-    throw std::runtime_error("not implemented");
+bool validate(VPackSlice const doc, VPackOptions const* options, tao::json::schema const& schema) {
+    return schema.validate(doc, options);
 }
 
 bool validate(tao::json::value const& doc, tao::json::schema const& schema) {
