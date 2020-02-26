@@ -2,6 +2,8 @@
 
 list=(
   'include/validation/validation.hpp'
+  'include/validation/events_from_slice.hpp'
+  'include/validation/types.hpp'
   'src/validation.cpp'
 )
 

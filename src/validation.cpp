@@ -1,34 +1,21 @@
 #include <cassert>
 
+#include <tao/json/contrib/schema.hpp>
+
 #include <velocypack/Iterator.h>
 #include <velocypack/velocypack-aliases.h>
 
+#include <validation/events_from_slice.hpp>
 #include <validation/validation.hpp>
-
-#if __has_include("Basics/VelocyPackHelper")
-    #include "Basics/VelocyPackHelper.h"
-#else
-namespace arangodb::basics {
-class VelocyPackHelper {
-    public:
-    static uint8_t const KeyAttribute = 0x31;
-    static uint8_t const RevAttribute = 0x32;
-    static uint8_t const IdAttribute = 0x33;
-    static uint8_t const FromAttribute = 0x34;
-    static uint8_t const ToAttribute = 0x35;
-
-    static uint8_t const AttributeBase = 0x30;
-};
-} // namespace arangodb::basics
-#endif
+#include <validation/types.hpp>
 
 namespace {
 using namespace arangodb;
 using namespace arangodb::validation;
-tao::json::value slice_object_to_value(VPackSlice const& slice,
-                                       bool ignore_special,
-                                       VPackOptions const* options,
-                                       VPackSlice const* base) {
+[[nodiscard]] tao::json::value slice_object_to_value(VPackSlice const& slice,
+                                                     bool ignore_special,
+                                                     VPackOptions const* options,
+                                                     VPackSlice const* base) {
     assert(slice.isObject());
     tao::json::value rv;
     rv.prepare_object();
@@ -55,28 +42,7 @@ tao::json::value slice_object_to_value(VPackSlice const& slice,
 
             using namespace arangodb::basics;
             uint8_t which = static_cast<uint8_t>(key.getUInt()) + VelocyPackHelper::AttributeBase;
-            switch (which) {
-                case VelocyPackHelper::KeyAttribute: {
-                    rv.try_emplace("_key", std::move(sub));
-                    break;
-                }
-                case VelocyPackHelper::RevAttribute: {
-                    rv.try_emplace("_rev", std::move(sub));
-                    break;
-                }
-                case VelocyPackHelper::IdAttribute: {
-                    rv.try_emplace("_id", std::move(sub));
-                    break;
-                }
-                case VelocyPackHelper::FromAttribute: {
-                    rv.try_emplace("_from", std::move(sub));
-                    break;
-                }
-                case VelocyPackHelper::ToAttribute: {
-                    rv.try_emplace("_to", std::move(sub));
-                    break;
-                }
-            }
+            rv.try_emplace(id_to_string(which), std::move(sub));
         }
 
         it.next();
@@ -85,10 +51,10 @@ tao::json::value slice_object_to_value(VPackSlice const& slice,
     return rv;
 }
 
-tao::json::value slice_array_to_value(VPackSlice const& slice,
-                                      bool ignore_special,
-                                      VPackOptions const* options,
-                                      VPackSlice const* base) {
+[[nodiscard]] tao::json::value slice_array_to_value(VPackSlice const& slice,
+                                                    bool ignore_special,
+                                                    VPackOptions const* options,
+                                                    VPackSlice const* base) {
     assert(slice.isArray());
     VPackArrayIterator it(slice);
     tao::json::value rv;
@@ -103,11 +69,30 @@ tao::json::value slice_array_to_value(VPackSlice const& slice,
 
     return rv;
 }
+
+template<template<typename...> class Traits>
+[[nodiscard]] bool validate(const tao::json::basic_schema<Traits>& schema,
+                            VPackSlice const& v,
+                            VPackOptions const* options = &VPackOptions::Defaults,
+                            bool ignore_special = true) {
+    const auto c = schema.consumer();
+    tao::json::events::from_value<Traits>(*c, v, options, ignore_special);
+    return c->finalize();
+}
+
+// use basics strings
+std::string const key_string = "_key";
+std::string const rev_string = "_rev";
+std::string const id_string = "_id";
+std::string const from_string = "_form";
+std::string const to_string = "_to";
+
 } // namespace
 
 namespace arangodb::validation {
+
 bool validate(VPackSlice const doc, VPackOptions const* options, tao::json::schema const& schema) {
-    return schema.validate(doc, options);
+    return ::validate(schema, doc, options);
 }
 
 bool validate(tao::json::value const& doc, tao::json::schema const& schema) {
@@ -175,11 +160,32 @@ tao::json::value
     return rv;
 }
 
-std::unique_ptr<VPackBuilder> ValueToSlice(tao::json::value doc) {
-    throw std::runtime_error("not implemented");
-    auto rv = std::make_unique<VPackBuilder>();
-    // VPackBuilder& b = *rv;
-    return rv;
+tao::json::basic_schema<tao::json::traits>* new_schema(VPackSlice const& schema) {
+    auto tao_value_schema = slice_to_value(schema);
+    return new tao::json::schema(tao_value_schema);
+}
+
+[[nodiscard]] std::string const& id_to_string(std::uint8_t id) {
+    using namespace basics;
+    using namespace std::literals::string_literals;
+    switch (id) {
+        case VelocyPackHelper::KeyAttribute: {
+            return key_string;
+        }
+        case VelocyPackHelper::RevAttribute: {
+            return rev_string;
+        }
+        case VelocyPackHelper::IdAttribute: {
+            return id_string;
+        }
+        case VelocyPackHelper::FromAttribute: {
+            return from_string;
+        }
+        case VelocyPackHelper::ToAttribute: {
+            return to_string;
+        }
+    }
+    assert(false);
 }
 
 } // namespace arangodb::validation

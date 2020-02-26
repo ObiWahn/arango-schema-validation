@@ -1,27 +1,25 @@
 // Copyright (c) 2016-2020 Daniel Frey and Jan Christoph Uhde
 // Please see LICENSE for license or visit https://github.com/taocpp/json/
 
-#ifndef TAO_JSON_EVENTS_FROM_SILCE_HPP
-#define TAO_JSON_EVENTS_FROM_SLICE_HPP
+#ifndef ARANGO_SCHEMA_VALIADTION_EVENTS_FROM_SLICE_HEADER
+#define ARANGO_SCHEMA_VALIADTION_EVENTS_FROM_SLICE_HEADER 1
 
 #include <stdexcept>
-
-#include "tao/json/basic_value.hpp"
-#include "tao/json/internal/format.hpp"
-
-#include "tao/json/events/virtual_ref.hpp"
 
 #include <velocypack/Iterator.h>
 #include <velocypack/Options.h>
 #include <velocypack/Slice.h>
 #include <velocypack/velocypack-aliases.h>
 
+#include "tao/json/internal/format.hpp"
+#include "types.hpp"
+
 namespace tao::json::events {
 // Events producer to generate events from a VPackSlice Value.
 
-template<auto Recurse, typename Consumer, template<typename...> class Traits>
-void from_value(Consumer& consumer, const VPackSlice& v, VPackOptions const* o) {
-    switch (v.type()) {
+template<auto Recurse, template<typename...> class Traits, typename Consumer>
+void from_value(Consumer& consumer, const VPackSlice& slice, VPackOptions const* options, bool ignore_special) {
+    switch (slice.type()) {
         case arangodb::velocypack::ValueType::Illegal:
             throw std::logic_error("unable to produce events from illegal values");
 
@@ -30,26 +28,26 @@ void from_value(Consumer& consumer, const VPackSlice& v, VPackOptions const* o) 
             return;
 
         case arangodb::velocypack::ValueType::Bool:
-            consumer.boolean(v.getBool());
+            consumer.boolean(slice.getBool());
             return;
 
         case arangodb::velocypack::ValueType::Int:
-            consumer.number(v.getInt());
+            consumer.number(slice.getInt());
             return;
         case arangodb::velocypack::ValueType::SmallInt:
-            consumer.number(v.getSmallInt());
+            consumer.number(slice.getSmallInt());
             return;
 
         case arangodb::velocypack::ValueType::UInt:
-            consumer.number(v.getUInt());
+            consumer.number(slice.getUInt());
             return;
 
         case arangodb::velocypack::ValueType::Double:
-            consumer.number(v.getDouble());
+            consumer.number(slice.getDouble());
             return;
 
         case arangodb::velocypack::ValueType::String: {
-            auto ref = v.stringRef();
+            auto ref = slice.stringRef();
             consumer.string(std::string_view(ref.data(), ref.length()));
             return;
         }
@@ -59,25 +57,42 @@ void from_value(Consumer& consumer, const VPackSlice& v, VPackOptions const* o) 
             return;
 
         case arangodb::velocypack::ValueType::Array: {
-            consumer.begin_array(v.length());
-            for (const auto& e : VPackArrayIterator(v)) {
-                Recurse(consumer, e, o);
+            consumer.begin_array(slice.length());
+            for (const auto& element : VPackArrayIterator(slice)) {
+                Recurse(consumer, element, options, ignore_special);
                 consumer.element();
             }
-            consumer.end_array(v.length());
+            consumer.end_array(slice.length());
             return;
         }
 
         case arangodb::velocypack::ValueType::Object: {
-            const auto s = v.length();
-            consumer.begin_object(s);
-            for (const auto& e : VPackObjectIterator(v)) {
-                auto key_ref = e.key.stringRef();
-                consumer.key(std::string_view(key_ref.data(), key_ref.length()));
-                Recurse(consumer, e.value, o);
-                consumer.member();
+            const auto len = slice.length();
+            consumer.begin_object(len);
+            for (const auto& element : VPackObjectIterator(slice)) {
+                VPackSlice key = element.key;
+                if (key.isString()) {
+                    auto key_ref = key.stringRef();
+                    consumer.key(std::string_view(key_ref.data(), key_ref.length()));
+                    Recurse(consumer, element.value, options, ignore_special);
+                    consumer.member();
+                } else if (!ignore_special) {
+                    std::string translated_key;
+                    using namespace arangodb::basics;
+                    uint8_t which = static_cast<uint8_t>(key.getUInt()) + VelocyPackHelper::AttributeBase;
+                    consumer.key(arangodb::validation::id_to_string(which));
+                    VPackSlice val = VPackSlice(element.key.begin() + 1);
+                    arangodb::velocypack::ValueLength length;
+                    if (val.isString()) {
+                        // value of _key, _id, _from, _to, and _rev is ASCII too
+                        char const* pointer = val.getString(length);
+                        consumer.string(std::string_view(pointer, length));
+                    } else {
+                        Recurse(consumer, val, options, ignore_special);
+                    }
+                } // ! ignore_special
             }
-            consumer.end_object(s);
+            consumer.end_object(len);
             return;
         }
         case arangodb::velocypack::ValueType::BCD:
@@ -92,17 +107,20 @@ void from_value(Consumer& consumer, const VPackSlice& v, VPackOptions const* o) 
             throw std::runtime_error("unsupported type");
     }
     throw std::logic_error(internal::format(
-        "invalid value '", static_cast<std::uint8_t>(v.type()), "' for arangodb::velocypack::ValueType"));
+        "invalid value '", static_cast<std::uint8_t>(slice.type()), "' for arangodb::velocypack::ValueType"));
 }
 
-template<typename Consumer, template<typename...> class Traits>
-void from_value(Consumer& consumer, const VPackSlice& v, VPackOptions const* o = nullptr) {
-    from_value<static_cast<void (*)(Consumer&, const VPackSlice&, VPackOptions const* o)>(
-                   &from_value<Consumer, Traits>),
-               Consumer,
-               Traits>(consumer, v, o);
+template<template<typename...> class Traits, typename Consumer>
+void from_value(Consumer& consumer, const VPackSlice& slice, VPackOptions const* options, bool ignore_special) {
+    // clang-format off
+    from_value<static_cast<void (*)(Consumer&, const VPackSlice&, VPackOptions const*, bool)>( &from_value<Traits, Consumer>)
+              ,Traits
+              ,Consumer
+              >(consumer, slice, options, ignore_special);
+    // clang-format on
 }
 
 } // namespace tao::json::events
+
 
 #endif
