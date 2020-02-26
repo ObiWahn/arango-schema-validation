@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "helper.hpp"
-#include <validation/validation.hpp>
 #include <tao/json/contrib/schema.hpp>
+#include <validation/validation.hpp>
 
 namespace {
 fs::path const test_dir = fs::path{ARANGO_VALIDATION_TEST_DIR} / "test_data";

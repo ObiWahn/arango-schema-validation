@@ -6,8 +6,8 @@
 #include <velocypack/velocypack-aliases.h>
 
 #include <validation/events_from_slice.hpp>
-#include <validation/validation.hpp>
 #include <validation/types.hpp>
+#include <validation/validation.hpp>
 
 namespace {
 using namespace arangodb;
@@ -76,7 +76,7 @@ template<template<typename...> class Traits>
                             VPackOptions const* options = &VPackOptions::Defaults,
                             bool ignore_special = true) {
     const auto c = schema.consumer();
-    tao::json::events::from_value<Traits>(*c, v, options, ignore_special);
+    tao::json::events::from_value<Traits>(*c, v, options, nullptr, ignore_special);
     return c->finalize();
 }
 
@@ -92,7 +92,7 @@ std::string const to_string = "_to";
 namespace arangodb::validation {
 
 bool validate(VPackSlice const doc, VPackOptions const* options, tao::json::schema const& schema) {
-    return ::validate(schema, doc, options);
+    return ::validate(schema, doc, options, true);
 }
 
 bool validate(tao::json::value const& doc, tao::json::schema const& schema) {
@@ -186,6 +186,8 @@ tao::json::basic_schema<tao::json::traits>* new_schema(VPackSlice const& schema)
         }
     }
     assert(false);
+    throw std::runtime_error("can not translate id");
+    return key_string; // make sure we return something
 }
 
 } // namespace arangodb::validation
